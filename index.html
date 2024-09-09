@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Custom Video Player</title>
+    <style>
+        /* Basic CSS for layout */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        #video-container {
+            position: relative;
+            max-width: 100%;
+            margin: auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #video-player {
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .control-button {
+            cursor: pointer;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .control-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Responsive Design */
+        @media only screen and (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .control-button {
+                width: 100%;
+                max-width: 300px;
+                margin-bottom: 10px;
+                font-size: 16px;
+            }
+
+            #video-container {
+                padding: 10px;
+            }
+        }
+
+        @media only screen and (max-width: 480px) {
+            .control-button {
+                width: 100%;
+                font-size: 14px;
+            }
+
+            #video-player {
+                border-radius: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="video-container">
+        <!-- Video Player with Different Qualities -->
+        <video id="video-player" controls>
+            <!-- First Video (1 minute) -->
+            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" data-quality="1080p">
+            <!-- Second Video (1 minute, will be played after first) -->
+            <source src="https://www.w3schools.com/html/movie.mp4" type="video/mp4" data-quality="1080p">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
+    <!-- Controls for Download and Quality Switch -->
+    <div class="controls">
+        <button class="control-button" onclick="downloadVideo()">Download Video</button>
+        <button class="control-button" onclick="switchQuality('1080p')">1080p</button>
+        <button class="control-button" onclick="switchQuality('720p')">720p</button>
+        <button class="control-button" onclick="switchQuality('480p')">480p</button>
+        <button class="control-button" onclick="switchQuality('320p')">320p</button>
+    </div>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        const videoPlayer = document.getElementById('video-player');
+        let currentVideoIndex = 0;
+        let downloadsToday = 0; // Track downloads
+        const videos = [
+            'https://www.w3schools.com/html/mov_bbb.mp4',  // First 1-minute video
+            'https://www.w3schools.com/html/movie.mp4'     // Second 1-minute video
+        ];
+
+        // Function to switch video quality
+        function switchQuality(quality) {
+            const sources = videoPlayer.getElementsByTagName('source');
+            for (let source of sources) {
+                if (source.getAttribute('data-quality') === quality) {
+                    videoPlayer.src = source.src;
+                    videoPlayer.load();
+                    break;
+                }
+            }
+        }
+
+        // Function to handle download
+        function downloadVideo() {
+            if (downloadsToday >= 1) {
+                alert("You can only download one video per day. Please upgrade to premium for unlimited downloads.");
+                initiateRazorpayPayment();
+                return;
+            }
+
+            downloadsToday++;
+            alert("Download started! You have downloaded " + downloadsToday + " video(s) today.");
+            // Trigger download logic here
+        }
+
+        // Function to initiate Razorpay payment
+        function initiateRazorpayPayment() {
+            const options = {
+                "key": "YOUR_RAZORPAY_KEY", // Replace with your Razorpay Key ID
+                "amount": "5000", // Amount in paise (5000 = INR 50)
+                "currency": "INR",
+                "name": "Premium Plan",
+                "description": "Unlimited video downloads",
+                "handler": function (response) {
+                    alert("Payment successful! You can now download unlimited videos.");
+                    downloadsToday = 0; // Reset download count
+                },
+                "prefill": {
+                    "name": "User",
+                    "email": "user@example.com"
+                },
+                "theme": {
+                    "color": "#007bff"
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
+        }
+
+        // Gesture-Based Control Implementation
+        videoPlayer.addEventListener('click', function (e) {
+            const rect = videoPlayer.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const tapArea = rect.width / 3;
+            
+            let taps = e.detail; // Get the number of taps
+
+            if (taps === 1) {
+                videoPlayer.paused ? videoPlayer.play() : videoPlayer.pause();
+            } else if (taps === 2) {
+                if (x > 2 * tapArea) {
+                    videoPlayer.currentTime += 10; // Fast forward
+                } else if (x < tapArea) {
+                    videoPlayer.currentTime -= 10; // Rewind
+                }
+            } else if (taps === 3) {
+                if (x > 2 * tapArea) {
+                    playNextVideo(); // Play the next video
+                } else if (x < tapArea) {
+                    alert("Comment section shown!"); // Show comments
+                } else {
+                    alert("Next video playing!"); // Notify user next video playing
+                }
+            }
+        });
+
+        // Play next video
+        function playNextVideo() {
+            currentVideoIndex = (currentVideoIndex + 1) % videos.length;
+            videoPlayer.src = videos[currentVideoIndex];
+            videoPlayer.load();
+            videoPlayer.play();
+        }
+    </script>
+</body>
+</html>
